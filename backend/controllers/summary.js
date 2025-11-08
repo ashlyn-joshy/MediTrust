@@ -46,3 +46,35 @@ module.exports.getAllSummaries = async (req, res) => {
         res.status(500).json({message:"Error in fetching summaries", error:error.message});
     }
 }
+
+//get all summaries for a patient
+module.exports.getSummariesByPatient = async (req, res) => {
+    try {
+        const { patientId } = req.params;
+        //validate patientId
+        const patient = await User.findById(patientId);
+        if (!patient || patient.role !== 'patient') {
+            return res.status(400).json({message:"Invalid patientId"});
+        }
+        const summaries = await Summary.find({ patientId }).populate('doctorId createdBy updatedBy');
+        res.status(200).json({summaries});
+    } catch (error) {
+        res.status(500).json({message:"Error in fetching summaries for patient", error:error.message});
+    }
+}
+
+//get all summaries by doctor
+module.exports.getSummariesByDoctor = async (req, res) => {
+    try {
+        const { doctorId } = req.params;
+        //validate doctorId
+        const doctor = await User.findById(doctorId);
+        if (!doctor || doctor.role !== 'doctor') {
+            return res.status(400).json({message:"Invalid doctorId"});
+        }
+        const summaries = await Summary.find({ doctorId }).populate('patientId createdBy updatedBy');
+        res.status(200).json({summaries});
+    } catch (error) {
+        res.status(500).json({message:"Error in fetching summaries for doctor", error:error.message});
+    }
+}
