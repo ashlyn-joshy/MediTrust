@@ -10,5 +10,6 @@ router.get("/all", summaryController.getAllSummaries);
 router.get("/patient/:patientId", summaryController.getSummariesByPatient);
 router.get("/doctor/:doctorId", summaryController.getSummariesByDoctor);
 router.delete("/delete/:summaryId", summaryController.deleteSummary);
+router.put("/update/:summaryId", summaryController.updateSummary);
 
 module.exports = router;

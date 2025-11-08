@@ -6,13 +6,12 @@ const User = require("../models/user");
 //creat new user
 module.exports.createUser = async (req, res) => {
   try {
-      const { username, email, password, role, specialization, phone } =
-        req.body;
-      //check the user existence
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        return res.status(400).json({ message: "User already exists" });
-      }
+    const { username, email, password, role, specialization, phone } = req.body;
+    //check the user existence
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
     //save user to db
     const newUser = await User.create({
       username,
@@ -36,26 +35,32 @@ module.exports.createUser = async (req, res) => {
 //get all users
 module.exports.getAllUsers = async (req, res) => {
   try {
-      const users = await User.find();
-        res.status(200).json({ users });
+    const users = await User.find();
+    res.status(200).json({ users });
   } catch (error) {
-    res.status(500).json({ message: "Error in fetching users", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error in fetching users", error: error.message });
   }
 };
 
-//delete user 
+//delete user
 module.exports.deleteUser = async (req, res) => {
-    try {
-        const { userId } = req.params;
-        const deletedUser = await User.findByIdAndDelete(userId);
-        if (!deletedUser) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        res.status(200).json({ message: "User deleted successfully", user: deletedUser });
-    } catch (error) {
-        res.status(500).json({ message: "Error in deleting user", error: error.message });
+  try {
+    const { userId } = req.params;
+    const deletedUser = await User.findByIdAndDelete(userId);
+    if (!deletedUser) {
+      return res.status(404).json({ message: "User not found" });
     }
-}
+    res
+      .status(200)
+      .json({ message: "User deleted successfully", user: deletedUser });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error in deleting user", error: error.message });
+  }
+};
 
 //update user information
 module.exports.updateUser = async (req, res) => {
@@ -65,9 +70,13 @@ module.exports.updateUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    const updateUser = await User.findByIdAndUpdate(userId, req.body)
-    res.status(200).json({ message: "User updated successfully", user: updateUser });
+    const updateUser = await User.findByIdAndUpdate(userId, req.body);
+    res
+      .status(200)
+      .json({ message: "User updated successfully", user: updateUser });
   } catch (error) {
-    res.status(500).json({ message: "Error in updating user", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error in updating user", error: error.message });
   }
-}
+};
