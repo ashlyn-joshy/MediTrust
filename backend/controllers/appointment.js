@@ -52,6 +52,11 @@ module.exports.getAllAppointments = async (req, res) => {
 module.exports.getAppointmentsByPatient = async (req, res) => {
     try {
         const { patientId } = req.params;
+        //check if patient exists
+        const patient = await User.findById(patientId);
+        if (!patient || patient.role !== 'patient') {
+            return res.status(400).json({ message: "Invalid patientId" });
+        }
         const appointments = await Appointment.find({ patientId }).populate('patientId doctorId createdBy updatedBy');
         res.status(200).json({ appointments });
     } catch (error) {
@@ -63,6 +68,11 @@ module.exports.getAppointmentsByPatient = async (req, res) => {
 module.exports.getAppointmentsByDoctor = async (req, res) => {
     try {
         const { doctorId } = req.params;
+        //check if doctor exists
+        const doctor = await User.findById(doctorId);
+        if (!doctor || doctor.role !== 'doctor') {
+            return res.status(400).json({ message: "Invalid doctorId" });
+        }
         const appointments = await Appointment.find({ doctorId }).populate('patientId doctorId createdBy updatedBy');
         res.status(200).json({ appointments });
     } catch (error) {
