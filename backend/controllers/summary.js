@@ -78,3 +78,18 @@ module.exports.getSummariesByDoctor = async (req, res) => {
         res.status(500).json({message:"Error in fetching summaries for doctor", error:error.message});
     }
 }
+
+//delete summary
+module.exports.deleteSummary = async (req, res) => {
+    try {
+        const { summaryId } = req.params;
+        const deletedSummary = await Summary.findById(summaryId);
+        if (!deletedSummary) {
+            return res.status(404).json({message:"Summary not found"});
+        }
+        await Summary.findByIdAndDelete(summaryId);
+        res.status(200).json({message:"Summary deleted successfully"});
+    } catch (error) {
+        res.status(500).json({message:"Error in deleting summary", error:error.message});
+    }
+}

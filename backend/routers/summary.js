@@ -1,13 +1,14 @@
 const express = require("express");
-const roter = express.Router();
+const router = express.Router();
 
 //controllers
 const summaryController = require("../controllers/summary");
 
 //routes
-roter.post("/create", summaryController.createSummary);
-roter.get("/all", summaryController.getAllSummaries);
-roter.get("/patient/:patientId", summaryController.getSummariesByPatient);
-roter.get("/doctor/:doctorId", summaryController.getSummariesByDoctor);
+router.post("/create", summaryController.createSummary);
+router.get("/all", summaryController.getAllSummaries);
+router.get("/patient/:patientId", summaryController.getSummariesByPatient);
+router.get("/doctor/:doctorId", summaryController.getSummariesByDoctor);
+router.delete("/delete/:summaryId", summaryController.deleteSummary);
 
-module.exports = roter;
+module.exports = router;
