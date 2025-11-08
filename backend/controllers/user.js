@@ -26,3 +26,13 @@ module.exports.createUser = async (req, res) => {
       .json({ message: "Error in creating user", error: error.message });
   }
 };
+
+//get all users
+module.exports.getAllUsers = async (req, res) => {
+  try {
+      const users = await User.find();
+        res.status(200).json({ users });
+  } catch (error) {
+    res.status(500).json({ message: "Error in fetching users", error: error.message });
+  }
+};
