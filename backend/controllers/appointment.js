@@ -37,3 +37,13 @@ module.exports.createAppointment = async (req, res) => {
         res.status(500).json({ message: "Error in creating appointment", error: error.message });
     }
 }
+
+//get all appointments
+module.exports.getAllAppointments = async (req, res) => {
+    try {
+        const appointments = await Appointment.find().populate('patientId doctorId createdBy updatedBy');
+        res.status(200).json({ appointments });
+    } catch (error) {
+        res.status(500).json({ message: "Error in fetching appointments", error: error.message });
+    }
+}

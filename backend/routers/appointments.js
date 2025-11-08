@@ -5,5 +5,6 @@ const router = express.Router();
 const appointmentController = require("../controllers/appointment");
 
 router.post("/createAppointment", appointmentController.createAppointment);
+router.get("/getAllAppointments", appointmentController.getAllAppointments);
 
 module.exports = router;
