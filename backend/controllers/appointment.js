@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 //models
 const Appointment = require('../models/appointment');
 const User = require('../models/user');
-const app = require('../server');
 
 //create new appointment
 module.exports.createAppointment = async (req, res) => {
@@ -43,6 +42,17 @@ module.exports.createAppointment = async (req, res) => {
 module.exports.getAllAppointments = async (req, res) => {
     try {
         const appointments = await Appointment.find().populate('patientId doctorId createdBy updatedBy');
+        res.status(200).json({ appointments });
+    } catch (error) {
+        res.status(500).json({ message: "Error in fetching appointments", error: error.message });
+    }
+}
+
+//get all appointments by patientId
+module.exports.getAppointmentsByPatient = async (req, res) => {
+    try {
+        const { patientId } = req.params;
+        const appointments = await Appointment.find({ patientId }).populate('patientId doctorId createdBy updatedBy');
         res.status(200).json({ appointments });
     } catch (error) {
         res.status(500).json({ message: "Error in fetching appointments", error: error.message });
