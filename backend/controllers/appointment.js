@@ -63,3 +63,39 @@ module.exports.deleteAppointment = async (req, res) => {
         res.status(500).json({ message: "Error in deleting appointment", error: error.message });
     }
 }
+
+//update appointment
+module.exports.updateAppointment = async (req, res) => {
+    try {
+      const { appointmentId } = req.params;
+      const updateAppointment = await Appointment.findById(appointmentId);
+      if (!updateAppointment) {
+        return res.status(404).json({ message: "Appointment not found" });
+      }
+      //validation of patient, doctor and updater
+      const patient = await User.findById(req.body.patientId);
+      if (!patient || patient.role !== "patient") {
+        return res.status(400).json({ message: "Invalid patientId" });
+      }
+      const doctor = await User.findById(req.body.doctorId);
+      if (!doctor || doctor.role !== "doctor") {
+        return res.status(400).json({ message: "Invalid doctorId" });
+      }
+      const updater = await User.findById(req.body.updatedBy);
+      if (!updater) {
+        return res.status(400).json({ message: "Invalid updatedBy userId" });
+      }
+      //save updated appointment to db
+      await Appointment.findByIdAndUpdate(appointmentId, req.body, {
+        new: true,
+      });
+      res
+        .status(200)
+        .json({
+          message: "Appointment updated successfully",
+          appointment: updateAppointment,
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Error in updating appointment", error: error.message });
+    }
+}
