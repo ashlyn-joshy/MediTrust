@@ -6,6 +6,7 @@ const app = express();
 app.use(express.json());
 //routers
 const userRouter = require("./routers/user");
+const appointmentRouter = require("./routers/appointments");
 
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`);
@@ -16,6 +17,7 @@ app.get("/", (req, res) => {
   res.send("Hello World!This is MediTrust Backend Server.");
 });
 app.use("/api/users", userRouter);
+app.use("/api/appointments", appointmentRouter);
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
