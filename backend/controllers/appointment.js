@@ -59,6 +59,17 @@ module.exports.getAppointmentsByPatient = async (req, res) => {
     }
 }
 
+//get all appointment by doctorId
+module.exports.getAppointmentsByDoctor = async (req, res) => {
+    try {
+        const { doctorId } = req.params;
+        const appointments = await Appointment.find({ doctorId }).populate('patientId doctorId createdBy updatedBy');
+        res.status(200).json({ appointments });
+    } catch (error) {
+        res.status(500).json({ message: "Error in fetching appointments", error: error.message });
+    }
+}
+
 //delete appointment
 module.exports.deleteAppointment = async (req, res) => {
     try {
