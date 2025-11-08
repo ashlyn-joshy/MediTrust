@@ -36,3 +36,13 @@ module.exports.createSummary = async (req, res) => {
         res.status(500).json({message:"Error in creating summary", error:error.message});
     }
 }
+
+//get all summaries
+module.exports.getAllSummaries = async (req, res) => {
+    try {
+        const summaries = await Summary.find().populate('patientId doctorId createdBy updatedBy');
+        res.status(200).json({summaries});
+    } catch (error) {
+        res.status(500).json({message:"Error in fetching summaries", error:error.message});
+    }
+}
