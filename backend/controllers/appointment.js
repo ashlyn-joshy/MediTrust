@@ -8,15 +8,15 @@ const { createAuditLog } = require("../utils/auditHelper");
 //create new appointment
 module.exports.createAppointment = async (req, res) => {
   try {
-    const {
-      patientId,
-      doctorId,
-      appointmentDate,
-      status,
-      notes,
-      reason,
-      createdBy,
-    } = req.body;
+    //checking if the user has admin role
+    const userRole = await User.findById(req.userId).select("role");
+    if (userRole.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Only admin can create new appointment" });
+    }
+    const { patientId, doctorId, appointmentDate, status, notes, reason } =
+      req.body;
     //validation of patient, doctor and creator
     const patient = await User.findById(patientId);
     if (!patient || patient.role !== "patient") {
@@ -26,10 +26,6 @@ module.exports.createAppointment = async (req, res) => {
     if (!doctor || doctor.role !== "doctor") {
       return res.status(400).json({ message: "Invalid doctorId" });
     }
-    const creator = await User.findById(createdBy);
-    if (!creator) {
-      return res.status(400).json({ message: "Invalid createdBy userId" });
-    }
     //save appointment to db
     const newAppointment = await Appointment.create({
       patientId,
@@ -38,12 +34,12 @@ module.exports.createAppointment = async (req, res) => {
       status,
       notes,
       reason,
-      createdBy,
+      createdBy: req.userId,
     });
     await newAppointment.save();
     // log audit
     await createAuditLog({
-      userId: createdBy,
+      userId: req.userId,
       action: "create",
       entityType: "Appointment",
       entityId: newAppointment._id,
@@ -63,6 +59,13 @@ module.exports.createAppointment = async (req, res) => {
 //get all appointments
 module.exports.getAllAppointments = async (req, res) => {
   try {
+    //checking if the user has admin role
+    const userRole = await User.findById(req.userId).select("role");
+    if (userRole.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Only admin can view all appointments" });
+    }
     const appointments = await Appointment.find().populate(
       "patientId doctorId createdBy updatedBy"
     );
@@ -79,6 +82,16 @@ module.exports.getAllAppointments = async (req, res) => {
 module.exports.getAppointmentsByPatient = async (req, res) => {
   try {
     const { patientId } = req.params;
+    //checking if the user has admin or patient role
+    const userRole = await User.findById(req.userId).select("role");
+    if (
+      userRole.role !== "admin" &&
+      (userRole.role !== "patient" || req.userId.toString() !== patientId)
+    ) {
+      return res.status(403).json({
+        message: "Only admin or patient can view all appointments by patientId",
+      });
+    }
     //check if patient exists
     const patient = await User.findById(patientId);
     if (!patient || patient.role !== "patient") {
@@ -100,6 +113,18 @@ module.exports.getAppointmentsByPatient = async (req, res) => {
 module.exports.getAppointmentsByDoctor = async (req, res) => {
   try {
     const { doctorId } = req.params;
+    console.log("Doctor ID:", doctorId);
+    console.log("User ID:", req.userId);
+    //checking if the user has admin or doctor role
+    const userRole = await User.findById(req.userId).select("role");
+    if (
+      userRole.role !== "admin" &&
+      (userRole.role !== "doctor" || req.userId.toString() !== doctorId)
+    ) {
+      return res.status(403).json({
+        message: "Only admin or doctor can view all appointments by doctorId",
+      });
+    }
     //check if doctor exists
     const doctor = await User.findById(doctorId);
     if (!doctor || doctor.role !== "doctor") {
@@ -121,6 +146,13 @@ module.exports.getAppointmentsByDoctor = async (req, res) => {
 module.exports.deleteAppointment = async (req, res) => {
   try {
     const { appointmentId } = req.params;
+    //checking if the user has admin role
+    const userRole = await User.findById(req.userId).select("role");
+    if (userRole.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Only admin can delete appointment" });
+    }
     const deletedAppointment = await Appointment.findById(appointmentId);
     if (!deletedAppointment) {
       return res.status(404).json({ message: "Appointment not found" });
@@ -159,17 +191,25 @@ module.exports.updateAppointment = async (req, res) => {
     if (!doctor || doctor.role !== "doctor") {
       return res.status(400).json({ message: "Invalid doctorId" });
     }
-    const updater = await User.findById(req.body.updatedBy);
-    if (!updater) {
-      return res.status(400).json({ message: "Invalid updatedBy userId" });
+    //check if user has admin or doctor role
+    const userRole = await User.findById(req.userId).select("role");
+    if (
+      userRole.role !== "admin" &&
+      (userRole.role !== "doctor" ||
+        req.userId.toString() !== updateAppointment.doctorId.toString())
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Only admin or doctor can update appointment" });
     }
     //save updated appointment to db
     await Appointment.findByIdAndUpdate(appointmentId, req.body, {
+      updatedBy: req.userId,
       new: true,
     });
     //log audit
     await createAuditLog({
-      userId: req.body.updatedBy,
+      userId: req.userId,
       action: "update",
       entityType: "Appointment",
       entityId: appointmentId,

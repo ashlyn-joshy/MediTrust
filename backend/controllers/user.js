@@ -16,6 +16,13 @@ const createToken = (id) => {
 module.exports.createUser = async (req, res) => {
   try {
     const { username, email, password, role, specialization, phone } = req.body;
+    //checking if the user has admin role
+    const userRole = await User.findById(req.userId).select("role");
+    if (userRole.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Only admin can create new users" });
+    }
     const newUser = await User.register(
       username,
       email,
@@ -78,6 +85,11 @@ module.exports.logoutUser = (req, res) => {
 //get all users
 module.exports.getAllUsers = async (req, res) => {
   try {
+    //checking if the user has admin role
+    const userRole = await User.findById(req.userId).select("role");
+    if (userRole.role !== "admin") {
+      return res.status(403).json({ message: "Only admin can view all users" });
+    }
     const users = await User.find();
     res.status(200).json({ users });
   } catch (error) {
@@ -91,10 +103,16 @@ module.exports.getAllUsers = async (req, res) => {
 module.exports.deleteUser = async (req, res) => {
   try {
     const { userId } = req.params;
-    const deletedUser = await User.findByIdAndDelete(userId);
+    //checking if the user has admin role
+    const userRole = await User.findById(req.userId).select("role");
+    if (userRole.role !== "admin") {
+      return res.status(403).json({ message: "Only admin can delete user" });
+    }
+    const deletedUser = await User.findById(userId);
     if (!deletedUser) {
       return res.status(404).json({ message: "User not found" });
     }
+    await User.findByIdAndDelete(userId);
     //log audit
     await createAuditLog({
       userId: req.userId,
@@ -117,6 +135,13 @@ module.exports.deleteUser = async (req, res) => {
 module.exports.updateUser = async (req, res) => {
   try {
     const { userId } = req.params;
+    //checking if the user has admin role
+    const userRole = await User.findById(req.userId).select("role");
+    if (userRole.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Only admin can update user information" });
+    }
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });

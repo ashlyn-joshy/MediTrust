@@ -54,6 +54,13 @@ module.exports.createSummary = async (req, res) => {
 //get all summaries
 module.exports.getAllSummaries = async (req, res) => {
   try {
+    //checking if the user has admin role
+    const userRole = await User.findById(req.userId).select("role");
+    if (userRole.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Only admin can view all summaries" });
+    }
     const summaries = await Summary.find().populate(
       "patientId doctorId createdBy updatedBy"
     );
@@ -73,6 +80,18 @@ module.exports.getSummariesByPatient = async (req, res) => {
     const patient = await User.findById(patientId);
     if (!patient || patient.role !== "patient") {
       return res.status(400).json({ message: "Invalid patientId" });
+    }
+    //checking if the user has admin or patient or doctor role
+    const userRole = await User.findById(req.userId).select("role");
+    if (
+      userRole.role !== "admin" &&
+      userRole.role !== "doctor" &&
+      (userRole.role !== "patient" || req.userId.toString() !== patientId)
+    ) {
+      return res.status(403).json({
+        message:
+          "Only admin, doctor, or same the patient can view summaries for this patientId",
+      });
     }
     const summaries = await Summary.find({ patientId }).populate(
       "doctorId createdBy updatedBy"
@@ -95,6 +114,16 @@ module.exports.getSummariesByDoctor = async (req, res) => {
     if (!doctor || doctor.role !== "doctor") {
       return res.status(400).json({ message: "Invalid doctorId" });
     }
+    //checking if the user has admin or doctor role
+    const userRole = await User.findById(req.userId).select("role");
+    if (
+      userRole.role !== "admin" &&
+      (userRole.role !== "doctor" || req.userId.toString() !== doctorId)
+    ) {
+      return res.status(403).json({
+        message: "Only admin or doctor can view all summaries by doctorId",
+      });
+    }
     const summaries = await Summary.find({ doctorId }).populate(
       "patientId createdBy updatedBy"
     );
@@ -114,6 +143,16 @@ module.exports.deleteSummary = async (req, res) => {
     const deletedSummary = await Summary.findById(summaryId);
     if (!deletedSummary) {
       return res.status(404).json({ message: "Summary not found" });
+    }
+    //check if user has doctor role
+    const userRole = await User.findById(req.userId).select("role");
+    if (
+      userRole.role !== "doctor" ||
+      req.userId.toString() !== deletedSummary.doctorId.toString()
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Only doctor can delete the summary" });
     }
     await Summary.findByIdAndDelete(summaryId);
     //log audit
@@ -149,14 +188,24 @@ module.exports.updateSummary = async (req, res) => {
     if (!doctor || doctor.role !== "doctor") {
       return res.status(400).json({ message: "Invalid doctorId" });
     }
-    const updater = await User.findById(req.body.updatedBy);
-    if (!updater) {
-      return res.status(400).json({ message: "Invalid updatedBy userId" });
+    //check if the user role is doctor
+    const userRole = await User.findById(req.userId).select("role");
+    if (
+      userRole.role !== "doctor" ||
+      req.userId.toString() !== updateSummary.doctorId.toString()
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Only doctor can update the summary" });
     }
-    await Summary.findByIdAndUpdate(summaryId, req.body, { new: true });
+
+    await Summary.findByIdAndUpdate(summaryId, req.body, {
+      updatedBy: req.userId,
+      new: true,
+    });
     //log audit
     await createAuditLog({
-      userId: req.body.updatedBy,
+      userId: req.userId,
       action: "update",
       entityType: "Summary",
       entityId: summaryId,
