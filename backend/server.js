@@ -1,9 +1,12 @@
 const express = require("express");
 require("dotenv").config();
 const mongoose = require("mongoose");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 app.use(express.json());
+app.use(cookieParser());
+
 //routers
 const userRouter = require("./routers/user");
 const appointmentRouter = require("./routers/appointments");

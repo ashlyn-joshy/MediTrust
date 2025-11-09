@@ -1,7 +1,15 @@
 const mongoose = require("mongoose");
+const jwt = require("jsonwebtoken");
 
 //models
 const User = require("../models/user");
+
+//create token
+const createToken = (id) => {
+  return jwt.sign({ id, isUser: true }, process.env.JWT_SECRET, {
+    expiresIn: "3d",
+  });
+};
 
 //creat new user
 module.exports.createUser = async (req, res) => {
@@ -15,9 +23,17 @@ module.exports.createUser = async (req, res) => {
       specialization,
       phone
     );
-    res
-      .status(201)
-      .json({ message: "User created successfully", user: newUser });
+    const token = createToken(newUser._id);
+    res.cookie("jwt", token, {
+      httpOnly: true,
+      maxAge: 3 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(201).json({
+      message: "User created successfully",
+      user: newUser,
+      token: token,
+    });
   } catch (error) {
     res
       .status(500)
