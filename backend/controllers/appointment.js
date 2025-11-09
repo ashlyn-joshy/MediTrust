@@ -1,9 +1,11 @@
 const mongoose = require("mongoose");
+const { createAuditLog } = require("../utils/auditHelper");
+const { transporter } = require("../config/nodemailer");
+const { appointmentCreated } = require("../Emails/appointmentCreated");
 
 //models
 const Appointment = require("../models/appointment");
 const User = require("../models/user");
-const { createAuditLog } = require("../utils/auditHelper");
 
 //create new appointment
 module.exports.createAppointment = async (req, res) => {
@@ -37,6 +39,19 @@ module.exports.createAppointment = async (req, res) => {
       createdBy: req.userId,
     });
     await newAppointment.save();
+    //send email notification to patient
+    console.log("Sending appointment creation email to:", patient.email);
+    console.log("Patient username:", patient.username);
+    try {
+      await transporter.sendMail(
+        appointmentCreated(patient.username, patient.email)
+      );
+    } catch (emailError) {
+      console.error(
+        "Failed to send appointment creation email:",
+        emailError.message
+      );
+    }
     // log audit
     await createAuditLog({
       userId: req.userId,
