@@ -162,12 +162,10 @@ module.exports.updateSummary = async (req, res) => {
       entityId: summaryId,
       change: { updateSummary: updateSummary },
     });
-    res
-      .status(200)
-      .json({
-        message: "Summary updated successfully",
-        summary: updateSummary,
-      });
+    res.status(200).json({
+      message: "Summary updated successfully",
+      summary: updateSummary,
+    });
   } catch (error) {
     res
       .status(500)

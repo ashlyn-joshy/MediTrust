@@ -24,15 +24,6 @@ module.exports.createUser = async (req, res) => {
       specialization,
       phone
     );
-    const token = createToken(newUser._id);
-    res.cookie("jwt", token, {
-      httpOnly: true,
-      maxAge: 3 * 24 * 60 * 60 * 1000,
-    });
-    res.cookie("userRole", newUser.role, {
-      httpOnly: true,
-      maxAge: 3 * 24 * 60 * 60 * 1000,
-    });
     //log audit
     await createAuditLog({
       userId: newUser._id,
@@ -45,7 +36,6 @@ module.exports.createUser = async (req, res) => {
     res.status(201).json({
       message: "User created successfully",
       user: newUser,
-      token: token,
     });
   } catch (error) {
     res
@@ -76,6 +66,13 @@ module.exports.loginUser = async (req, res) => {
       .status(500)
       .json({ message: "Error in logging in user", error: error.message });
   }
+};
+
+//logout user
+module.exports.logoutUser = (req, res) => {
+  res.cookie("jwt", "", { maxAge: 1 });
+  res.cookie("userRole", "", { maxAge: 1 });
+  res.status(200).json({ message: "User logged out successfully" });
 };
 
 //get all users

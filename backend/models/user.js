@@ -79,5 +79,4 @@ userSchema.statics.register = async function (
   return newUser;
 };
 
-
 module.exports = mongoose.model("User", userSchema);
