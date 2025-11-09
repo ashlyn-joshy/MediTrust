@@ -4,7 +4,6 @@ const mongoose = require("mongoose");
 const Appointment = require("../models/appointment");
 const User = require("../models/user");
 const { createAuditLog } = require("../utils/auditHelper");
-const user = require("../models/user");
 
 //create new appointment
 module.exports.createAppointment = async (req, res) => {
