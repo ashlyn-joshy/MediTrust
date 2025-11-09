@@ -8,6 +8,7 @@ app.use(express.json());
 const userRouter = require("./routers/user");
 const appointmentRouter = require("./routers/appointments");
 const summaryRouter = require("./routers/summary");
+const auditRouter = require("./routers/audit");
 
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`);
@@ -20,6 +21,7 @@ app.get("/", (req, res) => {
 app.use("/api/users", userRouter);
 app.use("/api/appointments", appointmentRouter);
 app.use("/api/summaries", summaryRouter);
+app.use("/api/audits", auditRouter);
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => {

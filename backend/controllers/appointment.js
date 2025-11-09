@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 //models
 const Appointment = require("../models/appointment");
 const User = require("../models/user");
+const { createAuditLog } = require("../utils/auditHelper");
+const user = require("../models/user");
 
 //create new appointment
 module.exports.createAppointment = async (req, res) => {
@@ -40,12 +42,18 @@ module.exports.createAppointment = async (req, res) => {
       createdBy,
     });
     await newAppointment.save();
-    res
-      .status(201)
-      .json({
-        message: "Appointment created successfully",
-        appointment: newAppointment,
-      });
+    //log audit
+    await createAuditLog({
+      userId: createdBy,
+      action: "create",
+      entityType: "Appointment",
+      entityId: newAppointment._id,
+      change: { createdAppointment: newAppointment },
+    });
+    res.status(201).json({
+      message: "Appointment created successfully",
+      appointment: newAppointment,
+    });
   } catch (error) {
     res
       .status(500)
@@ -61,12 +69,10 @@ module.exports.getAllAppointments = async (req, res) => {
     );
     res.status(200).json({ appointments });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error in fetching appointments",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error in fetching appointments",
+      error: error.message,
+    });
   }
 };
 
@@ -84,12 +90,10 @@ module.exports.getAppointmentsByPatient = async (req, res) => {
     );
     res.status(200).json({ appointments });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error in fetching appointments",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error in fetching appointments",
+      error: error.message,
+    });
   }
 };
 
@@ -107,12 +111,10 @@ module.exports.getAppointmentsByDoctor = async (req, res) => {
     );
     res.status(200).json({ appointments });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error in fetching appointments",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error in fetching appointments",
+      error: error.message,
+    });
   }
 };
 
@@ -125,6 +127,14 @@ module.exports.deleteAppointment = async (req, res) => {
       return res.status(404).json({ message: "Appointment not found" });
     }
     await Appointment.findByIdAndDelete(appointmentId);
+    //log audit
+    // await createAuditLog({
+    //   userId: req.createdBy,
+    //   action: "delete",
+    //   entityType: "Appointment",
+    //   entityId: appointmentId,
+    //   change: { deletedAppointment: deletedAppointment },
+    // });
     res.status(200).json({ message: "Appointment deleted successfully" });
   } catch (error) {
     res
@@ -157,6 +167,14 @@ module.exports.updateAppointment = async (req, res) => {
     //save updated appointment to db
     await Appointment.findByIdAndUpdate(appointmentId, req.body, {
       new: true,
+    });
+    //log audit
+    await createAuditLog({
+      userId: req.body.updatedBy,
+      action: "update",
+      entityType: "Appointment",
+      entityId: appointmentId,
+      change: { updateAppointment: updateAppointment },
     });
     res.status(200).json({
       message: "Appointment updated successfully",
