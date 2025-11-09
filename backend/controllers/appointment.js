@@ -41,14 +41,14 @@ module.exports.createAppointment = async (req, res) => {
       createdBy,
     });
     await newAppointment.save();
-    //log audit
-    // await createAuditLog({
-    //   userId: createdBy,
-    //   action: "create",
-    //   entityType: "Appointment",
-    //   entityId: newAppointment._id,
-    //   change: { createdAppointment: newAppointment },
-    // });
+    // log audit
+    await createAuditLog({
+      userId: createdBy,
+      action: "create",
+      entityType: "Appointment",
+      entityId: newAppointment._id,
+      change: { createdAppointment: newAppointment },
+    });
     res.status(201).json({
       message: "Appointment created successfully",
       appointment: newAppointment,
@@ -127,13 +127,13 @@ module.exports.deleteAppointment = async (req, res) => {
     }
     await Appointment.findByIdAndDelete(appointmentId);
     //log audit
-    // await createAuditLog({
-    //   userId: req.createdBy,
-    //   action: "delete",
-    //   entityType: "Appointment",
-    //   entityId: appointmentId,
-    //   change: { deletedAppointment: deletedAppointment },
-    // });
+    await createAuditLog({
+      userId: req.userId,
+      action: "delete",
+      entityType: "Appointment",
+      entityId: appointmentId,
+      change: { deletedAppointment: deletedAppointment },
+    });
     res.status(200).json({ message: "Appointment deleted successfully" });
   } catch (error) {
     res
@@ -168,13 +168,13 @@ module.exports.updateAppointment = async (req, res) => {
       new: true,
     });
     //log audit
-    // await createAuditLog({
-    //   userId: req.body.updatedBy,
-    //   action: "update",
-    //   entityType: "Appointment",
-    //   entityId: appointmentId,
-    //   change: { updateAppointment: updateAppointment },
-    // });
+    await createAuditLog({
+      userId: req.body.updatedBy,
+      action: "update",
+      entityType: "Appointment",
+      entityId: appointmentId,
+      change: { updateAppointment: updateAppointment },
+    });
     res.status(200).json({
       message: "Appointment updated successfully",
       appointment: updateAppointment,

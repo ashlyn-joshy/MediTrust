@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 //models
 const Summary = require("../models/summary");
 const User = require("../models/user");
+const { createAuditLog } = require("../utils/auditHelper");
 
 //create summary
 module.exports.createSummary = async (req, res) => {
@@ -32,6 +33,14 @@ module.exports.createSummary = async (req, res) => {
       createdBy,
     });
     await newSummary.save();
+    //log audit
+    await createAuditLog({
+      userId: createdBy,
+      action: "create",
+      entityType: "Summary",
+      entityId: newSummary._id,
+      change: { createdSummary: newSummary },
+    });
     res
       .status(201)
       .json({ message: "Summary created successfully", summary: newSummary });
@@ -70,12 +79,10 @@ module.exports.getSummariesByPatient = async (req, res) => {
     );
     res.status(200).json({ summaries });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error in fetching summaries for patient",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error in fetching summaries for patient",
+      error: error.message,
+    });
   }
 };
 
@@ -93,12 +100,10 @@ module.exports.getSummariesByDoctor = async (req, res) => {
     );
     res.status(200).json({ summaries });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error in fetching summaries for doctor",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error in fetching summaries for doctor",
+      error: error.message,
+    });
   }
 };
 
@@ -111,6 +116,14 @@ module.exports.deleteSummary = async (req, res) => {
       return res.status(404).json({ message: "Summary not found" });
     }
     await Summary.findByIdAndDelete(summaryId);
+    //log audit
+    await createAuditLog({
+      userId: req.userId,
+      action: "delete",
+      entityType: "Summary",
+      entityId: summaryId,
+      change: { deletedSummary: deletedSummary },
+    });
     res.status(200).json({ message: "Summary deleted successfully" });
   } catch (error) {
     res
@@ -141,7 +154,20 @@ module.exports.updateSummary = async (req, res) => {
       return res.status(400).json({ message: "Invalid updatedBy userId" });
     }
     await Summary.findByIdAndUpdate(summaryId, req.body, { new: true });
-    res.status(200).json({ message: "Summary updated successfully" , summary: updateSummary });
+    //log audit
+    await createAuditLog({
+      userId: req.body.updatedBy,
+      action: "update",
+      entityType: "Summary",
+      entityId: summaryId,
+      change: { updateSummary: updateSummary },
+    });
+    res
+      .status(200)
+      .json({
+        message: "Summary updated successfully",
+        summary: updateSummary,
+      });
   } catch (error) {
     res
       .status(500)

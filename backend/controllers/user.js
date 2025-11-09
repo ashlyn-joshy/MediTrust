@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 
 //models
 const User = require("../models/user");
+const { createAuditLog } = require("../utils/auditHelper");
 
 //create token
 const createToken = (id) => {
@@ -31,6 +32,14 @@ module.exports.createUser = async (req, res) => {
     res.cookie("userRole", newUser.role, {
       httpOnly: true,
       maxAge: 3 * 24 * 60 * 60 * 1000,
+    });
+    //log audit
+    await createAuditLog({
+      userId: newUser._id,
+      action: "create",
+      entityType: "User",
+      entityId: newUser._id,
+      change: { createdUser: newUser },
     });
 
     res.status(201).json({
@@ -89,6 +98,14 @@ module.exports.deleteUser = async (req, res) => {
     if (!deletedUser) {
       return res.status(404).json({ message: "User not found" });
     }
+    //log audit
+    await createAuditLog({
+      userId: req.userId,
+      action: "delete",
+      entityType: "User",
+      entityId: userId,
+      change: { deletedUser: deletedUser },
+    });
     res
       .status(200)
       .json({ message: "User deleted successfully", user: deletedUser });
@@ -108,6 +125,14 @@ module.exports.updateUser = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
     const updateUser = await User.findByIdAndUpdate(userId, req.body);
+    //log audit
+    await createAuditLog({
+      userId: req.userId,
+      action: "update",
+      entityType: "User",
+      entityId: userId,
+      change: { updateUser: updateUser },
+    });
     res
       .status(200)
       .json({ message: "User updated successfully", user: updateUser });
