@@ -1,4 +1,7 @@
 const mongoose = require("mongoose");
+const PDFDocument = require("pdfkit");
+const fs = require("fs");
+const path = require("path");
 
 //models
 const Summary = require("../models/summary");
@@ -8,34 +11,32 @@ const { createAuditLog } = require("../utils/auditHelper");
 //create summary
 module.exports.createSummary = async (req, res) => {
   try {
-    const { patientId, doctorId, visitDate, reason, notes, createdBy } =
-      req.body;
-    //validate patient, doctor, createdBy
+    const { patientId, visitDate, reason, notes } = req.body;
+    //validate patient
     const patient = await User.findById(patientId);
     if (!patient || patient.role !== "patient") {
       return res.status(400).json({ message: "Invalid patientId" });
     }
-    const doctor = await User.findById(doctorId);
-    if (!doctor || doctor.role !== "doctor") {
-      return res.status(400).json({ message: "Invalid doctorId" });
-    }
-    const creator = await User.findById(createdBy);
-    if (!creator) {
-      return res.status(400).json({ message: "Invalid createdBy userId" });
+    //check if the user has doctor role
+    const userRole = await User.findById(req.userId).select("role");
+    if (userRole.role !== "doctor") {
+      return res
+        .status(403)
+        .json({ message: "Only doctor can create the summary" });
     }
     //save summary to db
     const newSummary = await Summary.create({
       patientId,
-      doctorId,
+      doctorId: req.userId,
       visitDate,
       reason,
       notes,
-      createdBy,
+      createdBy: req.userId,
     });
     await newSummary.save();
     //log audit
     await createAuditLog({
-      userId: createdBy,
+      userId: req.userId,
       action: "create",
       entityType: "Summary",
       entityId: newSummary._id,
@@ -96,7 +97,92 @@ module.exports.getSummariesByPatient = async (req, res) => {
     const summaries = await Summary.find({ patientId }).populate(
       "doctorId createdBy updatedBy"
     );
+    if (summaries.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No summaries found for this patient" });
+    }
     res.status(200).json({ summaries });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error in fetching summaries for patient",
+      error: error.message,
+    });
+  }
+};
+
+//get all summaries for a patient by pdf
+module.exports.getSummariesByPatientPDF = async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    //validate patientId
+    const patient = await User.findById(patientId);
+    if (!patient || patient.role !== "patient") {
+      return res.status(400).json({ message: "Invalid patientId" });
+    }
+    //checking if the user has admin or patient or doctor role
+    const userRole = await User.findById(req.userId).select("role");
+    if (
+      userRole.role !== "admin" &&
+      userRole.role !== "doctor" &&
+      (userRole.role !== "patient" || req.userId.toString() !== patientId)
+    ) {
+      return res.status(403).json({
+        message:
+          "Only admin, doctor, or same the patient can view summaries for this patientId",
+      });
+    }
+    const summaries = await Summary.find({ patientId }).populate("doctorId");
+    if (!summaries || summaries.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No summaries found for the patient" });
+    }
+    //generate pdf
+    const filename = `summaries_${patientId}.pdf`;
+    const filePath = path.join(__dirname, "..", "temp", filename);
+    if (!fs.existsSync(path.join(__dirname, "..", "temp"))) {
+      fs.mkdirSync(path.join(__dirname, "..", "temp"));
+    }
+
+    const doc = new PDFDocument();
+    const writeStream = fs.createWriteStream(filePath);
+    doc.pipe(writeStream);
+    doc
+      .fontSize(20)
+      .text(`Medical Summaries for Patient: ${patient.username}`, {
+        align: "center",
+      });
+    doc.moveDown();
+    summaries.forEach((summary, index) => {
+      doc
+        .fontSize(14)
+        .text(`Summary ${index + 1}`, { underline: true })
+        .moveDown(0.5);
+      doc.text(`Doctor: ${summary.doctorId?.username || "N/A"}`);
+      doc.text(`Visit Date: ${summary.visitDate?.toDateString() || "N/A"}`);
+      doc.text(`Reason: ${summary.reason || "N/A"}`);
+      doc.text(`Notes: ${summary.notes || "N/A"}`);
+      doc.moveDown();
+    });
+    doc.end();
+
+    writeStream.on("finish", () => {
+      res.download(filePath, filename, (err) => {
+        if (err) {
+          console.error("Error sending PDF:", err);
+          return res.status(500).json({ message: "Error sending PDF" });
+        }
+        fs.unlink(filePath, (unlinkErr) => {
+          if (unlinkErr) console.error("Error deleting PDF:", unlinkErr);
+        });
+      });
+    });
+
+    writeStream.on("error", (err) => {
+      console.error("WriteStream Error:", err);
+      res.status(500).json({ message: "Error writing PDF file" });
+    });
   } catch (error) {
     res.status(500).json({
       message: "Error in fetching summaries for patient",

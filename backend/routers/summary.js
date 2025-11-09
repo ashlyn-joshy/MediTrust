@@ -15,6 +15,11 @@ router.get(
   summaryController.getSummariesByPatient
 );
 router.get(
+  "/patient/:patientId/pdf",
+  requireAuth,
+  summaryController.getSummariesByPatientPDF
+);
+router.get(
   "/doctor/:doctorId",
   requireAuth,
   summaryController.getSummariesByDoctor
